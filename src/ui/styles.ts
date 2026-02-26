@@ -112,16 +112,21 @@ export function ensureStyles(): void {
       display: grid;
       gap: 8px;
       align-content: start;
+      grid-auto-rows: max-content;
       max-height: 55%;
     }
     #${MODAL_ID} .rmv-card {
       border: 1px solid #dbe1ec;
       border-radius: 8px;
       background: #f8fafc;
-      padding: 8px;
-      display: grid;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
       gap: 6px;
+      min-height: 58px;
       cursor: pointer;
+      overflow: hidden;
     }
     #${MODAL_ID} .rmv-card:hover {
       border-color: #0b5fff;
@@ -133,15 +138,14 @@ export function ensureStyles(): void {
       line-height: 1.3;
       word-break: break-word;
     }
-    #${MODAL_ID} .rmv-note-text {
+    #${MODAL_ID} .rmv-note-preview {
       font-size: 13px;
       line-height: 1.35;
       color: #0f172a;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
+      white-space: nowrap;
       overflow: hidden;
-      word-break: break-word;
+      text-overflow: ellipsis;
+      min-height: 1.35em;
     }
     #${MODAL_ID} .rmv-preview {
       border-top: 1px solid #e2e8f0;
@@ -163,6 +167,31 @@ export function ensureStyles(): void {
     }
     #${MODAL_ID} .rmv-native-preview .rm-block-main,
     #${MODAL_ID} .rmv-native-preview .rm-block__self {
+      position: static !important;
+      transform: none !important;
+      margin: 0 !important;
+    }
+    .leaflet-popup-content .rmv-popup {
+      min-width: 260px;
+      max-width: 430px;
+      display: grid;
+      gap: 4px;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    .leaflet-popup-content .rmv-popup-native {
+      margin-top: 6px;
+      border: 1px solid #dbe1ec;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 6px;
+      max-height: 180px;
+      overflow: auto;
+      position: relative;
+      isolation: isolate;
+    }
+    .leaflet-popup-content .rmv-popup-native .rm-block-main,
+    .leaflet-popup-content .rmv-popup-native .rm-block__self {
       position: static !important;
       transform: none !important;
       margin: 0 !important;

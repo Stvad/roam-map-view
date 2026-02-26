@@ -18,6 +18,7 @@ export function NotesList({ notes, emptyMessage, onHover, onFocus, registerCardR
         notes.map((note) => {
           const loc = `${note.point.lat.toFixed(5)}, ${note.point.lng.toFixed(5)}`;
           const label = note.placeLabel ? `${note.placeLabel} • ` : "";
+          const previewText = note.topText?.trim() || `((${note.topUid}))`;
           return (
             <div
               key={note.topUid}
@@ -30,7 +31,7 @@ export function NotesList({ notes, emptyMessage, onHover, onFocus, registerCardR
               <div className="rmv-card-meta">
                 {`${formatTs(note.effectiveTs)} • ${note.pageTitle} • ${label}${loc} • ${note.source}`}
               </div>
-              <div className="rmv-note-text">{note.topText}</div>
+              <div className="rmv-note-preview">{previewText}</div>
             </div>
           );
         })

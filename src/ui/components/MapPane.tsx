@@ -26,6 +26,15 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function renderNativeBlock(el: HTMLElement, uid: string): void {
+  el.innerHTML = "";
+  try {
+    window.roamAlphaAPI.ui.components.renderBlock({ uid, el });
+  } catch {
+    el.textContent = `((${uid}))`;
+  }
+}
+
 export function MapPane({ notes, hoverUid, focusTarget, onMarkerClick, onReady, onError }: Props) {
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -98,11 +107,22 @@ export function MapPane({ notes, hoverUid, focusTarget, onMarkerClick, onReady, 
 
     for (const note of notes) {
       const loc = `${note.point.lat.toFixed(5)}, ${note.point.lng.toFixed(5)}`;
-      const preview = note.topText.length > 220 ? `${note.topText.slice(0, 220)}…` : note.topText;
+      const popupRoot = document.createElement("div");
+      popupRoot.className = "rmv-popup";
+      popupRoot.innerHTML = `
+        <div><strong>${escapeHtml(note.pageTitle)}</strong></div>
+        <div>${escapeHtml(formatTs(note.effectiveTs))}</div>
+        <div>${escapeHtml(loc)}</div>
+      `;
+      const nativeHolder = document.createElement("div");
+      nativeHolder.className = "rmv-popup-native";
+      popupRoot.appendChild(nativeHolder);
+
       const marker = L.marker([note.point.lat, note.point.lng]);
-      marker.bindPopup(
-        `<div style="min-width:240px;max-width:380px"><strong>${escapeHtml(note.pageTitle)}</strong><br/>${escapeHtml(formatTs(note.effectiveTs))}<br/>${escapeHtml(loc)}<div style="margin-top:6px;line-height:1.35">${escapeHtml(preview)}</div></div>`
-      );
+      marker.bindPopup(popupRoot, { maxWidth: 460 });
+      marker.on("popupopen", () => {
+        renderNativeBlock(nativeHolder, note.topUid);
+      });
       marker.on("click", () => onMarkerClick(note.topUid));
 
       layer.addLayer(marker);
