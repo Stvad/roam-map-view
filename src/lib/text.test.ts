@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { firstMeaningfulText, isDailyPageTitle, isMeaningful, normalizedText } from "./text";
+import { firstMeaningfulText, isDailyPageTitle, isDailyPageUid, isMeaningful, normalizedText } from "./text";
 
 describe("normalizedText", () => {
   it("normalizes roam syntax and urls", () => {
@@ -45,5 +45,16 @@ describe("isDailyPageTitle", () => {
   it("rejects non-daily titles", () => {
     expect(isDailyPageTitle("Project Phoenix")).toBe(false);
     expect(isDailyPageTitle("2026-02-24")).toBe(false);
+  });
+});
+
+describe("isDailyPageUid", () => {
+  it("matches Roam daily page UIDs", () => {
+    expect(isDailyPageUid("02-24-2026")).toBe(true);
+  });
+
+  it("rejects non-daily UIDs", () => {
+    expect(isDailyPageUid("abc123xyz")).toBe(false);
+    expect(isDailyPageUid("2026-02-24")).toBe(false);
   });
 });

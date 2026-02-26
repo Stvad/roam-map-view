@@ -56,3 +56,7 @@ export function firstMeaningfulText(node: any): string {
 export function isDailyPageTitle(title: string): boolean {
   return /^[A-Z][a-z]+\s+\d{1,2}(st|nd|rd|th),\s+\d{4}$/.test(title);
 }
+
+export function isDailyPageUid(uid: string): boolean {
+  return /^\d{2}-\d{2}-\d{4}$/.test(uid);
+}

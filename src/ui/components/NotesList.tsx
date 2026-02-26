@@ -1,19 +1,19 @@
 import { formatTs } from "../../lib/time";
 import type { NoteLocation } from "../../types";
-import { NativeBlock } from "../NativeBlock";
 
 type Props = {
   notes: NoteLocation[];
+  emptyMessage: string;
   onHover: (uid: string | null) => void;
   onFocus: (uid: string) => void;
   registerCardRef: (uid: string, el: HTMLDivElement | null) => void;
 };
 
-export function NotesList({ notes, onHover, onFocus, registerCardRef }: Props) {
+export function NotesList({ notes, emptyMessage, onHover, onFocus, registerCardRef }: Props) {
   return (
     <div className="rmv-list">
       {notes.length === 0 ? (
-        <div className="rmv-card-meta">No matching notes for this range/filter.</div>
+        <div className="rmv-card-meta">{emptyMessage}</div>
       ) : (
         notes.map((note) => {
           const loc = `${note.point.lat.toFixed(5)}, ${note.point.lng.toFixed(5)}`;
@@ -30,7 +30,7 @@ export function NotesList({ notes, onHover, onFocus, registerCardRef }: Props) {
               <div className="rmv-card-meta">
                 {`${formatTs(note.effectiveTs)} • ${note.pageTitle} • ${label}${loc} • ${note.source}`}
               </div>
-              <NativeBlock uid={note.topUid} />
+              <div className="rmv-note-text">{note.topText}</div>
             </div>
           );
         })

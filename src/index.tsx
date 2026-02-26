@@ -84,9 +84,7 @@ function openModal(): void {
 }
 
 async function onload({ extensionAPI }: { extensionAPI: ExtensionAPI }): Promise<void> {
-  console.info("[roam-map-view] onload start");
   extensionApiRef = extensionAPI;
-  (window as any).__roamMapView = { loaded: true, commandsRegistered: false };
   createSettingsPanel(extensionAPI);
 
   extensionAPI.ui.commandPalette.addCommand({
@@ -102,12 +100,9 @@ async function onload({ extensionAPI }: { extensionAPI: ExtensionAPI }): Promise
       refreshHandler?.();
     },
   });
-  (window as any).__roamMapView.commandsRegistered = true;
-  console.info("[roam-map-view] commands registered");
 }
 
 function onunload(): void {
-  console.info("[roam-map-view] onunload");
   closeModal();
   removeStyles();
   extensionApiRef = null;

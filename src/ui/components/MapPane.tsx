@@ -17,6 +17,15 @@ type Props = {
   onError: (message: string) => void;
 };
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function MapPane({ notes, hoverUid, focusTarget, onMarkerClick, onReady, onError }: Props) {
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -89,9 +98,10 @@ export function MapPane({ notes, hoverUid, focusTarget, onMarkerClick, onReady, 
 
     for (const note of notes) {
       const loc = `${note.point.lat.toFixed(5)}, ${note.point.lng.toFixed(5)}`;
+      const preview = note.topText.length > 220 ? `${note.topText.slice(0, 220)}…` : note.topText;
       const marker = L.marker([note.point.lat, note.point.lng]);
       marker.bindPopup(
-        `<div style="min-width:240px"><strong>${note.pageTitle}</strong><br/>${formatTs(note.effectiveTs)}<br/>${loc}<br/><code>((${note.topUid}))</code></div>`
+        `<div style="min-width:240px;max-width:380px"><strong>${escapeHtml(note.pageTitle)}</strong><br/>${escapeHtml(formatTs(note.effectiveTs))}<br/>${escapeHtml(loc)}<div style="margin-top:6px;line-height:1.35">${escapeHtml(preview)}</div></div>`
       );
       marker.on("click", () => onMarkerClick(note.topUid));
 

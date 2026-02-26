@@ -67,22 +67,28 @@ export function ControlsPanel({
       </div>
 
       <div className="rmv-row">
-        <input
-          type="number"
-          min={20}
-          max={2000}
-          placeholder="Max notes"
-          value={maxNotes}
-          onChange={(e) => onMaxNotesChange(e.target.value)}
-        />
-        <input
-          type="number"
-          min={2}
-          max={200}
-          placeholder="Min chars"
-          value={minChars}
-          onChange={(e) => onMinCharsChange(e.target.value)}
-        />
+        <div className="rmv-field">
+          <label className="rmv-label">Max notes</label>
+          <input
+            type="number"
+            min={20}
+            max={2000}
+            placeholder="Max notes"
+            value={maxNotes}
+            onChange={(e) => onMaxNotesChange(e.target.value)}
+          />
+        </div>
+        <div className="rmv-field">
+          <label className="rmv-label">Min text chars</label>
+          <input
+            type="number"
+            min={2}
+            max={200}
+            placeholder="Min chars"
+            value={minChars}
+            onChange={(e) => onMinCharsChange(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="rmv-row">

@@ -6,6 +6,7 @@ import { readCache, writeCache } from "../timeline/db";
 import type { ExtensionAPI, NoteLocation } from "../types";
 import { ControlsPanel } from "./components/ControlsPanel";
 import { MapPane, type FocusTarget } from "./components/MapPane";
+import { NativeBlock } from "./NativeBlock";
 import { NotesList } from "./components/NotesList";
 
 type Props = {
@@ -28,9 +29,10 @@ export function MapViewModal({ api, onClose, registerRefreshHandler }: Props) {
   const [maxNotes, setMaxNotes] = useState(String(Number(api.settings.get("max-notes") || 400)));
   const [minChars, setMinChars] = useState(String(Number(api.settings.get("min-chars") || 10)));
   const [excludeRegex, setExcludeRegex] = useState(String(api.settings.get("exclude-regex") || ""));
-  const [onlyDailyPages, setOnlyDailyPages] = useState(Boolean(api.settings.get("only-daily-pages") ?? true));
+  const [onlyDailyPages, setOnlyDailyPages] = useState(Boolean(api.settings.get("only-daily-pages") ?? false));
   const [hoverUid, setHoverUid] = useState<string | null>(null);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
+  const [selectedUid, setSelectedUid] = useState<string | null>(null);
 
   const focusSeqRef = useRef(0);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -46,6 +48,7 @@ export function MapViewModal({ api, onClose, registerRefreshHandler }: Props) {
   const focusUid = useCallback((uid: string): void => {
     focusSeqRef.current += 1;
     setFocusTarget({ uid, seq: focusSeqRef.current });
+    setSelectedUid(uid);
   }, []);
 
   const persistSettings = useCallback(async (): Promise<void> => {
@@ -79,7 +82,14 @@ export function MapViewModal({ api, onClose, registerRefreshHandler }: Props) {
     setStatus("Querying notes...");
     const result = await collectNotes(start, end, cache, maxBlocks, minCharsNum, excludeRegex.trim(), onlyDailyPages);
     setNotes(result);
-    setStatus(`Showing ${result.length} notes.`);
+    setSelectedUid((prev) => (result.some((n) => n.topUid === prev) ? prev : result[0]?.topUid || null));
+    if (result.length === 0 && onlyDailyPages) {
+      setStatus("Showing 0 notes. Try disabling 'Only daily pages'.");
+    } else if (result.length === 0) {
+      setStatus("Showing 0 notes.");
+    } else {
+      setStatus(`Showing ${result.length} notes.`);
+    }
     void persistSettings();
   }, [endValue, excludeRegex, maxNotes, minChars, onlyDailyPages, persistSettings, startValue]);
 
@@ -103,8 +113,10 @@ export function MapViewModal({ api, onClose, registerRefreshHandler }: Props) {
       setStatus(
         `Imported ${cache.points.length.toLocaleString()} points, ${cache.frequentPlaces.length.toLocaleString()} frequent places.`
       );
+      // Immediately show results so users don't need a second click after import.
+      void refreshView();
     },
-    [api]
+    [api, refreshView]
   );
 
   const applyPreset = useCallback((nextPreset: string): void => {
@@ -130,6 +142,8 @@ export function MapViewModal({ api, onClose, registerRefreshHandler }: Props) {
     },
     [focusUid]
   );
+
+  const selectedNote = selectedUid ? notes.find((n) => n.topUid === selectedUid) || null : null;
 
   const handleMapReady = useCallback((): void => {
     const meta = api.settings.get("cache-meta") as { importedAt?: number; pointCount?: number } | undefined;
@@ -202,10 +216,24 @@ export function MapViewModal({ api, onClose, registerRefreshHandler }: Props) {
 
           <NotesList
             notes={notes}
+            emptyMessage={
+              onlyDailyPages
+                ? "No matching notes for this range/filter. Try disabling 'Only daily pages'."
+                : "No matching notes for this range/filter."
+            }
             onHover={setHoverUid}
             onFocus={focusUid}
             registerCardRef={registerCardRef}
           />
+
+          {selectedNote ? (
+            <div className="rmv-preview">
+              <div className="rmv-card-meta">{`Selected: ${selectedNote.pageTitle}`}</div>
+              <div className="rmv-native-preview">
+                <NativeBlock uid={selectedNote.topUid} />
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <MapPane

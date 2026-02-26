@@ -15,16 +15,20 @@ function installRoamMock({ changed, parents, trees }: RoamMockInput): void {
     if (query.includes(":find ?uid ?et")) {
       return changed;
     }
-    if (query.includes(":find ?puid ?title")) {
+    if (query.includes(":find ?puid")) {
       const uid = String(arg);
       const p = parents[uid];
-      return p ? [[p.uid, p.title ?? null]] : [];
+      return p ? [[p.uid]] : [];
     }
     throw new Error(`Unexpected query: ${query}`);
   });
 
-  const pull = vi.fn((_pattern: string, lookup: [string, string]) => {
+  const pull = vi.fn((pattern: string, lookup: [string, string]) => {
     const uid = lookup[1];
+    if (pattern.includes(":node/title")) {
+      const owner = parents[uid];
+      return owner?.title ? { ":node/title": owner.title } : {};
+    }
     return trees[uid] ?? null;
   });
 
@@ -52,18 +56,23 @@ afterEach(() => {
 
 describe("collectNotes", () => {
   it("clusters changed child blocks to one top-level note", async () => {
+    const tA = 1_708_772_945_000;
+    const tB = 1_708_772_944_000;
+    const tC = 1_708_772_943_000;
     installRoamMock({
       changed: [
-        ["child-A", 5000],
-        ["child-B", 4000],
-        ["child-C", 3000],
+        ["child-A", tA],
+        ["child-B", tB],
+        ["child-C", tC],
       ],
       parents: {
         "child-A": { uid: "top-A" },
         "child-B": { uid: "top-A" },
         "child-C": { uid: "top-B" },
-        "top-A": { uid: "page-daily", title: "February 24th, 2026" },
-        "top-B": { uid: "page-daily-2", title: "February 23rd, 2026" },
+        "top-A": { uid: "page-daily" },
+        "top-B": { uid: "page-daily-2" },
+        "page-daily": { uid: "graph-root", title: "February 24th, 2026" },
+        "page-daily-2": { uid: "graph-root", title: "February 23rd, 2026" },
       },
       trees: {
         "top-A": { ":block/string": "Top A summary", ":block/children": [] },
@@ -73,10 +82,10 @@ describe("collectNotes", () => {
 
     const result = await collectNotes(
       0,
-      10_000,
+      tA + 10_000,
       cache([
-        { ts: 3000, lat: 48.0, lng: 2.0, source: "GPS" },
-        { ts: 5000, lat: 48.1, lng: 2.1, source: "GPS" },
+        { ts: tC, lat: 48.0, lng: 2.0, source: "GPS" },
+        { ts: tA, lat: 48.1, lng: 2.1, source: "GPS" },
       ]),
       100,
       4,
@@ -85,21 +94,26 @@ describe("collectNotes", () => {
     );
 
     expect(result).toHaveLength(2);
-    expect(result.find((r) => r.topUid === "top-A")?.editTime).toBe(5000);
+    expect(result.find((r) => r.topUid === "top-A")?.editTime).toBe(tA);
     expect(result.filter((r) => r.topUid === "top-A")).toHaveLength(1);
   });
 
   it("filters to daily pages when requested", async () => {
+    const tDaily = 1_708_772_945_000;
+    const tProj = 1_708_772_944_000;
     installRoamMock({
       changed: [
-        ["daily-child", 5000],
-        ["proj-child", 4000],
+        ["daily-child", tDaily],
+        ["proj-child", tProj],
       ],
       parents: {
         "daily-child": { uid: "top-daily" },
         "proj-child": { uid: "top-proj" },
-        "top-daily": { uid: "page-daily", title: "February 24th, 2026" },
-        "top-proj": { uid: "page-project", title: "Project Phoenix" },
+        "top-daily": { uid: "02-24-2026" },
+        "top-proj": { uid: "page-project" },
+        // Non-English title still qualifies via daily page UID.
+        "02-24-2026": { uid: "graph-root", title: "24 février 2026" },
+        "page-project": { uid: "graph-root", title: "Project Phoenix" },
       },
       trees: {
         "top-daily": { ":block/string": "Daily note", ":block/children": [] },
@@ -109,10 +123,10 @@ describe("collectNotes", () => {
 
     const result = await collectNotes(
       0,
-      10_000,
+      tDaily + 10_000,
       cache([
-        { ts: 4000, lat: 48.0, lng: 2.0, source: "GPS" },
-        { ts: 5000, lat: 48.1, lng: 2.1, source: "GPS" },
+        { ts: tProj, lat: 48.0, lng: 2.0, source: "GPS" },
+        { ts: tDaily, lat: 48.1, lng: 2.1, source: "GPS" },
       ]),
       100,
       4,
@@ -129,7 +143,8 @@ describe("collectNotes", () => {
       changed: [["child-1", 5000]],
       parents: {
         "child-1": { uid: "top-1" },
-        "top-1": { uid: "page-daily", title: "February 24th, 2026" },
+        "top-1": { uid: "page-daily" },
+        "page-daily": { uid: "graph-root", title: "February 24th, 2026" },
       },
       trees: {
         "top-1": {
@@ -167,5 +182,53 @@ describe("collectNotes", () => {
     expect(result[0].effectiveTs).toBe(matrixTs);
     expect(result[0].point.lat).toBeCloseTo(48.8119, 5);
     expect(result[0].placeLabel).toBe("HOME");
+  });
+
+  it("falls back to microsecond query window and normalizes edit-time", async () => {
+    const q = vi.fn((query: string, a?: unknown, b?: unknown) => {
+      if (query.includes(":find ?uid ?et")) {
+        const end = Number(b);
+        // Return rows only for microsecond-range query attempt.
+        if (end > 1e15) {
+          return [["child-1", 1_708_772_943_000_000]];
+        }
+        return [];
+      }
+      if (query.includes(":find ?puid")) {
+        const uid = String(a);
+        if (uid === "child-1") return [["top-1"]];
+        if (uid === "top-1") return [["02-24-2026"]];
+        return [];
+      }
+      return [];
+    });
+
+    const pull = vi.fn((pattern: string, lookup: [string, string]) => {
+      const uid = lookup[1];
+      if (pattern.includes(":node/title")) {
+        if (uid === "02-24-2026") return { ":node/title": "24 février 2026" };
+        return {};
+      }
+      if (uid === "top-1") {
+        return { ":block/string": "Some recent note", ":block/children": [] };
+      }
+      return null;
+    });
+
+    (globalThis as any).window = { roamAlphaAPI: { q, pull } };
+
+    const result = await collectNotes(
+      new Date("2024-02-24T00:00:00Z").getTime(),
+      new Date("2024-02-25T00:00:00Z").getTime(),
+      cache([{ ts: 1_708_772_943_000, lat: 48.8119, lng: 2.4139, source: "GPS" }]),
+      100,
+      4,
+      "",
+      true
+    );
+
+    expect(result).toHaveLength(1);
+    // Normalized from microseconds to milliseconds.
+    expect(result[0].editTime).toBe(1_708_772_943_000);
   });
 });

@@ -37,6 +37,7 @@ export type TimelineCache = {
 export type TopBlockInfo = {
   topUid: string;
   pageTitle: string;
+  pageUid: string;
 };
 
 export type NoteLocation = {
