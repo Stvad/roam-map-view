@@ -55,14 +55,16 @@ afterEach(() => {
 });
 
 describe("collectNotes", () => {
-  it("clusters changed child blocks to one top-level note", async () => {
+  it("uses the highest changed ancestor within the selected range", async () => {
     const tA = 1_708_772_945_000;
     const tB = 1_708_772_944_000;
     const tC = 1_708_772_943_000;
+    const tTopA = 1_708_772_942_000;
     installRoamMock({
       changed: [
         ["child-A", tA],
         ["child-B", tB],
+        ["top-A", tTopA],
         ["child-C", tC],
       ],
       parents: {
@@ -76,7 +78,7 @@ describe("collectNotes", () => {
       },
       trees: {
         "top-A": { ":block/string": "Top A summary", ":block/children": [] },
-        "top-B": { ":block/string": "Top B summary", ":block/children": [] },
+        "child-C": { ":block/string": "Top B summary", ":block/children": [] },
       },
     });
 
@@ -96,6 +98,47 @@ describe("collectNotes", () => {
     expect(result).toHaveLength(2);
     expect(result.find((r) => r.topUid === "top-A")?.editTime).toBe(tA);
     expect(result.filter((r) => r.topUid === "top-A")).toHaveLength(1);
+    expect(result.find((r) => r.topUid === "child-C")?.editTime).toBe(tC);
+  });
+
+  it("still picks a changed ancestor even if that ancestor is older than the candidate slice", async () => {
+    const newest = 10_000;
+    const changed: Array<[string, number]> = [];
+    for (let i = 0; i < 60; i += 1) {
+      changed.push([`noise-${i}`, newest - i]);
+    }
+    changed.push(["top-A", 1]);
+
+    const parents: Record<string, ParentInfo | undefined> = {
+      "child-A": { uid: "top-A" },
+      "top-A": { uid: "page-daily" },
+      "page-daily": { uid: "graph-root", title: "February 24th, 2026" },
+    };
+
+    for (let i = 0; i < 60; i += 1) {
+      parents[`noise-${i}`] = { uid: "page-daily" };
+    }
+
+    installRoamMock({
+      changed: [["child-A", newest + 1], ...changed],
+      parents,
+      trees: {
+        "top-A": { ":block/string": "Top A summary", ":block/children": [] },
+      },
+    });
+
+    const result = await collectNotes(
+      0,
+      newest + 5,
+      cache([{ ts: newest + 1, lat: 48.1, lng: 2.1, source: "GPS" }]),
+      1,
+      4,
+      "",
+      false
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].topUid).toBe("top-A");
   });
 
   it("filters to daily pages when requested", async () => {
@@ -116,8 +159,8 @@ describe("collectNotes", () => {
         "page-project": { uid: "graph-root", title: "Project Phoenix" },
       },
       trees: {
-        "top-daily": { ":block/string": "Daily note", ":block/children": [] },
-        "top-proj": { ":block/string": "Project note", ":block/children": [] },
+        "daily-child": { ":block/string": "Daily note", ":block/children": [] },
+        "proj-child": { ":block/string": "Project note", ":block/children": [] },
       },
     });
 
@@ -135,7 +178,7 @@ describe("collectNotes", () => {
     );
 
     expect(result).toHaveLength(1);
-    expect(result[0].topUid).toBe("top-daily");
+    expect(result[0].topUid).toBe("daily-child");
   });
 
   it("uses matrix timestamp override and computes place label", async () => {
@@ -147,7 +190,7 @@ describe("collectNotes", () => {
         "page-daily": { uid: "graph-root", title: "February 24th, 2026" },
       },
       trees: {
-        "top-1": {
+        "child-1": {
           ":block/string": "Matrix imported note",
           ":block/children": [
             { ":block/string": "author::[[@stvad:matrix.org]]" },
@@ -209,7 +252,7 @@ describe("collectNotes", () => {
         if (uid === "02-24-2026") return { ":node/title": "24 février 2026" };
         return {};
       }
-      if (uid === "top-1") {
+      if (uid === "child-1") {
         return { ":block/string": "Some recent note", ":block/children": [] };
       }
       return null;

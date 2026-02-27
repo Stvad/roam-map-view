@@ -48,12 +48,17 @@ function immediateParent(uid: string): { uid: string; pageTitle?: string } | nul
   return { uid: puid, pageTitle: pageTitleForUid(puid) };
 }
 
-function topLevelForBlock(uid: string, cache: Map<string, TopBlockInfo>): TopBlockInfo | null {
+function topLevelForBlock(
+  uid: string,
+  changedUids: Set<string>,
+  cache: Map<string, TopBlockInfo>
+): TopBlockInfo | null {
   if (cache.has(uid)) {
     return cache.get(uid) || null;
   }
 
   let current = uid;
+  let highestChanged = changedUids.has(uid) ? uid : null;
   let depth = 0;
   while (depth < 200) {
     const parent = immediateParent(current);
@@ -61,9 +66,12 @@ function topLevelForBlock(uid: string, cache: Map<string, TopBlockInfo>): TopBlo
       return null;
     }
     if (parent.pageTitle) {
-      const info = { topUid: current, pageTitle: parent.pageTitle, pageUid: parent.uid };
+      const info = { topUid: highestChanged || current, pageTitle: parent.pageTitle, pageUid: parent.uid };
       cache.set(uid, info);
       return info;
+    }
+    if (changedUids.has(parent.uid)) {
+      highestChanged = parent.uid;
     }
     current = parent.uid;
     depth += 1;
@@ -180,12 +188,15 @@ export async function collectNotes(
   const changed = queryChangedBlocks(startMs, endMs);
 
   const sorted = changed.sort((a, b) => b[1] - a[1]).slice(0, Math.max(50, maxBlocks * 8));
+  // Build this from all changed rows in range (not just the limited candidate set),
+  // otherwise a changed ancestor can be dropped before parent walking.
+  const changedUids = new Set(changed.map(([uid]) => uid));
   const parentCache = new Map<string, TopBlockInfo>();
   const topEditTime = new Map<string, number>();
   const topPage = new Map<string, string>();
 
   for (const [uid, et] of sorted) {
-    const top = topLevelForBlock(uid, parentCache);
+    const top = topLevelForBlock(uid, changedUids, parentCache);
     if (!top) {
       continue;
     }
