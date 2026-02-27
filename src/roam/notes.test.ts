@@ -101,6 +101,46 @@ describe("collectNotes", () => {
     expect(result.find((r) => r.topUid === "child-C")?.editTime).toBe(tC);
   });
 
+  it("still picks a changed ancestor even if that ancestor is older than the candidate slice", async () => {
+    const newest = 10_000;
+    const changed: Array<[string, number]> = [];
+    for (let i = 0; i < 60; i += 1) {
+      changed.push([`noise-${i}`, newest - i]);
+    }
+    changed.push(["top-A", 1]);
+
+    const parents: Record<string, ParentInfo | undefined> = {
+      "child-A": { uid: "top-A" },
+      "top-A": { uid: "page-daily" },
+      "page-daily": { uid: "graph-root", title: "February 24th, 2026" },
+    };
+
+    for (let i = 0; i < 60; i += 1) {
+      parents[`noise-${i}`] = { uid: "page-daily" };
+    }
+
+    installRoamMock({
+      changed: [["child-A", newest + 1], ...changed],
+      parents,
+      trees: {
+        "top-A": { ":block/string": "Top A summary", ":block/children": [] },
+      },
+    });
+
+    const result = await collectNotes(
+      0,
+      newest + 5,
+      cache([{ ts: newest + 1, lat: 48.1, lng: 2.1, source: "GPS" }]),
+      1,
+      4,
+      "",
+      false
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].topUid).toBe("top-A");
+  });
+
   it("filters to daily pages when requested", async () => {
     const tDaily = 1_708_772_945_000;
     const tProj = 1_708_772_944_000;

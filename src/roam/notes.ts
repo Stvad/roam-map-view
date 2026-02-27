@@ -188,7 +188,9 @@ export async function collectNotes(
   const changed = queryChangedBlocks(startMs, endMs);
 
   const sorted = changed.sort((a, b) => b[1] - a[1]).slice(0, Math.max(50, maxBlocks * 8));
-  const changedUids = new Set(sorted.map(([uid]) => uid));
+  // Build this from all changed rows in range (not just the limited candidate set),
+  // otherwise a changed ancestor can be dropped before parent walking.
+  const changedUids = new Set(changed.map(([uid]) => uid));
   const parentCache = new Map<string, TopBlockInfo>();
   const topEditTime = new Map<string, number>();
   const topPage = new Map<string, string>();
