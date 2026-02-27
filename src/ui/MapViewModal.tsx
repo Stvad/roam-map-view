@@ -230,7 +230,7 @@ export function MapViewModal({ api, onClose, registerRefreshHandler }: Props) {
             <div className="rmv-preview">
               <div className="rmv-card-meta">{`Selected: ${selectedNote.pageTitle}`}</div>
               <div className="rmv-native-preview">
-                <NativeBlock uid={selectedNote.topUid} />
+                <NativeBlock uid={selectedNote.topUid} fallbackText={selectedNote.topText} />
               </div>
             </div>
           ) : null}

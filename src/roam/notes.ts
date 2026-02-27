@@ -57,6 +57,13 @@ function topLevelForBlock(
     return cache.get(uid) || null;
   }
 
+  const selfPageTitle = pageTitleForUid(uid);
+  if (selfPageTitle) {
+    const info = { topUid: uid, pageTitle: selfPageTitle, pageUid: uid };
+    cache.set(uid, info);
+    return info;
+  }
+
   let current = uid;
   let highestChanged = changedUids.has(uid) ? uid : null;
   let depth = 0;

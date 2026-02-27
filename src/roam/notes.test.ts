@@ -227,6 +227,36 @@ describe("collectNotes", () => {
     expect(result[0].placeLabel).toBe("HOME");
   });
 
+  it("keeps page-level edits and returns the page uid as topUid", async () => {
+    const tPage = 1_708_772_950_000;
+    installRoamMock({
+      changed: [["page-daily", tPage]],
+      parents: {
+        "page-daily": { uid: "graph-root", title: "February 24th, 2026" },
+      },
+      trees: {
+        "page-daily": {
+          ":block/string": "",
+          ":block/children": [{ ":block/string": "Page level note", ":block/children": [] }],
+        },
+      },
+    });
+
+    const result = await collectNotes(
+      0,
+      tPage + 1_000,
+      cache([{ ts: tPage, lat: 48.8119, lng: 2.4139, source: "GPS" }]),
+      100,
+      4,
+      "",
+      false
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].topUid).toBe("page-daily");
+    expect(result[0].pageTitle).toBe("February 24th, 2026");
+  });
+
   it("falls back to microsecond query window and normalizes edit-time", async () => {
     const q = vi.fn((query: string, a?: unknown, b?: unknown) => {
       if (query.includes(":find ?uid ?et")) {

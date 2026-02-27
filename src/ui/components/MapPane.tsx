@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { formatTs } from "../../lib/time";
 import type { NoteLocation } from "../../types";
 import { ensureLeaflet } from "../leaflet";
+import { renderNativeBlock } from "../renderNativeBlock";
 
 export type FocusTarget = {
   uid: string;
@@ -16,15 +17,6 @@ type Props = {
   onReady: () => void;
   onError: (message: string) => void;
 };
-
-function renderNativeBlock(el: HTMLElement, uid: string): void {
-  el.innerHTML = "";
-  try {
-    window.roamAlphaAPI.ui.components.renderBlock({ uid, el , "zoom-path?": true});
-  } catch {
-    el.textContent = `((${uid}))`;
-  }
-}
 
 export function MapPane({ notes, hoverUid, focusTarget, onMarkerClick, onReady, onError }: Props) {
   const mapElRef = useRef<HTMLDivElement>(null);
@@ -111,7 +103,7 @@ export function MapPane({ notes, hoverUid, focusTarget, onMarkerClick, onReady, 
       const marker = L.marker([note.point.lat, note.point.lng]);
       marker.bindPopup(popupRoot, { maxWidth: 460 });
       marker.on("popupopen", () => {
-        renderNativeBlock(nativeHolder, note.topUid);
+        renderNativeBlock(nativeHolder, note.topUid, note.topText);
       });
       marker.on("click", () => onMarkerClick(note.topUid));
 

@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
+import { renderNativeBlock } from "./renderNativeBlock";
 
 type Props = {
   uid: string;
+  fallbackText?: string;
 };
 
-export function NativeBlock({ uid }: Props) {
+export function NativeBlock({ uid, fallbackText }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -12,19 +14,14 @@ export function NativeBlock({ uid }: Props) {
       return;
     }
 
-    ref.current.innerHTML = "";
-    try {
-      window.roamAlphaAPI.ui.components.renderBlock({ uid, el: ref.current, "zoom-path?": true });
-    } catch {
-      ref.current.textContent = `(( ${uid} ))`;
-    }
+    renderNativeBlock(ref.current, uid, fallbackText);
 
     return () => {
       if (ref.current) {
         ref.current.innerHTML = "";
       }
     };
-  }, [uid]);
+  }, [uid, fallbackText]);
 
   return <div ref={ref} />;
 }
