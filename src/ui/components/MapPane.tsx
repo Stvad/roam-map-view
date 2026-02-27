@@ -17,19 +17,10 @@ type Props = {
   onError: (message: string) => void;
 };
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function renderNativeBlock(el: HTMLElement, uid: string): void {
   el.innerHTML = "";
   try {
-    window.roamAlphaAPI.ui.components.renderBlock({ uid, el });
+    window.roamAlphaAPI.ui.components.renderBlock({ uid, el , "zoom-path?": true});
   } catch {
     el.textContent = `((${uid}))`;
   }
@@ -106,17 +97,16 @@ export function MapPane({ notes, hoverUid, focusTarget, onMarkerClick, onReady, 
     const bounds: [number, number][] = [];
 
     for (const note of notes) {
-      const loc = `${note.point.lat.toFixed(5)}, ${note.point.lng.toFixed(5)}`;
       const popupRoot = document.createElement("div");
       popupRoot.className = "rmv-popup";
-      popupRoot.innerHTML = `
-        <div><strong>${escapeHtml(note.pageTitle)}</strong></div>
-        <div>${escapeHtml(formatTs(note.effectiveTs))}</div>
-        <div>${escapeHtml(loc)}</div>
-      `;
       const nativeHolder = document.createElement("div");
       nativeHolder.className = "rmv-popup-native";
       popupRoot.appendChild(nativeHolder);
+
+      const editTime = document.createElement("div");
+      editTime.className = "rmv-popup-edit-time";
+      editTime.textContent = `Edited ${formatTs(note.effectiveTs)}`;
+      popupRoot.appendChild(editTime);
 
       const marker = L.marker([note.point.lat, note.point.lng]);
       marker.bindPopup(popupRoot, { maxWidth: 460 });

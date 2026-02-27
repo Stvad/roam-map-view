@@ -171,30 +171,38 @@ export function ensureStyles(): void {
       transform: none !important;
       margin: 0 !important;
     }
-    .leaflet-popup-content .rmv-popup {
+    #${MODAL_ID} .leaflet-popup-content {
+      margin: 8px 10px;
+    }
+    #${MODAL_ID} .leaflet-popup-content .rmv-popup {
       min-width: 260px;
       max-width: 430px;
       display: grid;
-      gap: 4px;
+      gap: 2px;
       font-size: 13px;
       line-height: 1.35;
     }
-    .leaflet-popup-content .rmv-popup-native {
-      margin-top: 6px;
+    #${MODAL_ID} .leaflet-popup-content .rmv-popup-native {
+      margin-top: 4px;
       border: 1px solid #dbe1ec;
       border-radius: 8px;
       background: #f8fafc;
-      padding: 6px;
+      padding: 4px;
       max-height: 180px;
       overflow: auto;
       position: relative;
       isolation: isolate;
     }
-    .leaflet-popup-content .rmv-popup-native .rm-block-main,
-    .leaflet-popup-content .rmv-popup-native .rm-block__self {
+    #${MODAL_ID} .leaflet-popup-content .rmv-popup-native .rm-block-main,
+    #${MODAL_ID} .leaflet-popup-content .rmv-popup-native .rm-block__self {
       position: static !important;
       transform: none !important;
       margin: 0 !important;
+    }
+    #${MODAL_ID} .leaflet-popup-content .rmv-popup-edit-time {
+      margin-top: 0;
+      font-size: 11px;
+      color: #475569;
     }
     #${MODAL_ID} .rmv-map {
       position: relative;
