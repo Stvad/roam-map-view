@@ -14,7 +14,7 @@ export function NativeBlock({ uid }: Props) {
 
     ref.current.innerHTML = "";
     try {
-      window.roamAlphaAPI.ui.components.renderBlock({ uid, el: ref.current });
+      window.roamAlphaAPI.ui.components.renderBlock({ uid, el: ref.current, "zoom-path?": true });
     } catch {
       ref.current.textContent = `(( ${uid} ))`;
     }
